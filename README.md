@@ -14,6 +14,8 @@ Refer to [NewBasis.cs](NBSDecoder/NewBasis.cs).
 
 Most frames decode fine, except ones with alpha (please advise if someone figures it out).
 
+Audio not currently extracted
+
 ## Building
 
 .NET SDK 10.0
