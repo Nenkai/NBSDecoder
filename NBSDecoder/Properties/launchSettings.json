@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "vpxtest2": {
+      "commandName": "Project",
+      "commandLineArgs": "\"D:\\work\\frida-non-root\\qrjay2026.nbs\""
+    }
+  }
+}
