@@ -1,13 +1,10 @@
 ﻿using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.PixelFormats;
 
 using System.Diagnostics;
 using System.Drawing;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Xml.Linq;
 
 using static NBSDecoder.vp9_imports;
 

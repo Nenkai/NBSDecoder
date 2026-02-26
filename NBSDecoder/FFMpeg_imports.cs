@@ -14,40 +14,42 @@ internal unsafe class FFMpeg_imports
     // (binaries are in the repo: https://github.com/Ruslan-B/FFmpeg.AutoGen)
     // ^ maybe use this if someone ever figures out all the frame changes.
 
-    [DllImport("nbsextend.dll", CallingConvention = CallingConvention.Cdecl)]
+    const string FFMPEG_PATH = "Binaries/ffmpeg/nbsextend.dll";
+
+    [DllImport(FFMPEG_PATH, CallingConvention = CallingConvention.Cdecl)]
     public static extern IntPtr avcodec_alloc_context3(nint a);
 
-    [DllImport("nbsextend.dll", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(FFMPEG_PATH, CallingConvention = CallingConvention.Cdecl)]
     public static extern IntPtr avcodec_find_decoder_by_name([MarshalAs(UnmanagedType.LPStr)] string str);
 
-    [DllImport("nbsextend.dll", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(FFMPEG_PATH, CallingConvention = CallingConvention.Cdecl)]
     public static extern nint avcodec_open2(nint a, nint b, void* c);
 
-    [DllImport("nbsextend.dll", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(FFMPEG_PATH, CallingConvention = CallingConvention.Cdecl)]
     public static extern nint av_packet_alloc();
 
-    [DllImport("nbsextend.dll", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(FFMPEG_PATH, CallingConvention = CallingConvention.Cdecl)]
     public static extern void av_packet_unref(AVPacket* packet);
 
-    [DllImport("nbsextend.dll", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(FFMPEG_PATH, CallingConvention = CallingConvention.Cdecl)]
     public static extern void av_packet_free(AVPacket* packet);
 
-    [DllImport("nbsextend.dll", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(FFMPEG_PATH, CallingConvention = CallingConvention.Cdecl)]
     public static extern nint av_new_packet(AVPacket* packet, uint size);
 
-    [DllImport("nbsextend.dll", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(FFMPEG_PATH, CallingConvention = CallingConvention.Cdecl)]
     public static extern nint avcodec_send_packet(nint codecContext, AVPacket* packet);
 
-    [DllImport("nbsextend.dll", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(FFMPEG_PATH, CallingConvention = CallingConvention.Cdecl)]
     public static extern AVFrame* av_frame_alloc();
 
-    [DllImport("nbsextend.dll", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(FFMPEG_PATH, CallingConvention = CallingConvention.Cdecl)]
     public static extern void av_frame_unref(AVFrame* frame);
 
-    [DllImport("nbsextend.dll", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(FFMPEG_PATH, CallingConvention = CallingConvention.Cdecl)]
     public static extern void av_frame_free(AVFrame* frame);
 
-    [DllImport("nbsextend.dll", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(FFMPEG_PATH, CallingConvention = CallingConvention.Cdecl)]
     public static extern nint avcodec_receive_frame(nint codecContext, AVFrame* packet);
 }
 
