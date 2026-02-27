@@ -225,7 +225,7 @@ public unsafe class NBSToVideoConverter
         if (ffmpeg.av_frame_make_writable(_currentFrame) != 0)
             throw new Exception($"{nameof(ffmpeg.av_frame_make_writable)} errored");
 
-        _currentFrame->pts = keyIndex++;
+        _currentFrame->pts = keyIndex;
 
         byte* yPlane = (byte*)(incomingBaseFrame->data)[0];
         byte* uPlane = (byte*)(incomingBaseFrame->data)[1];
