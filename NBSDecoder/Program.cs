@@ -20,7 +20,6 @@ internal unsafe class Program
         Console.WriteLine("- https://twitter.com/Nenkaai");
         Console.WriteLine("-----------------------------------------");
         Console.WriteLine("");
-        Console.WriteLine($"NOTE: This tool does not support clips containing audio yet.");
 
         // Requires 'full-shared' binaries
         ffmpeg.RootPath = "Binaries\\ffmpeg";
