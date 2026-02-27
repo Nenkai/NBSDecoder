@@ -10,9 +10,13 @@ License to ffmpeg is also included in this repository.
 
 Refer to [NewBasis.cs](NBSDecoder/NewBasis.cs).
 
+Also [010 Editor Template](https://github.com/Nenkai/010GameTemplates/blob/main/Netease/NBS_NewBasis.bt)
+
 ## Current State
 
 Most frames decode fine, except ones with alpha (please advise if someone figures it out).
+
+Audio not currently extracted
 
 ## Building
 
