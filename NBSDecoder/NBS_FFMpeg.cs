@@ -8,13 +8,13 @@ using System.Text;
 
 namespace NBSDecoder;
 
-internal unsafe class FFMpeg_imports
+public unsafe class NBS_FFMpeg
 {
     // Some nice bindings exist: FFMpeg.AutoGen
     // (binaries are in the repo: https://github.com/Ruslan-B/FFmpeg.AutoGen)
     // ^ maybe use this if someone ever figures out all the frame changes.
 
-    const string FFMPEG_PATH = "Binaries/ffmpeg/nbsextend.dll";
+    const string FFMPEG_PATH = "Binaries/nbs_ffmpeg/nbsextend.dll";
 
     [DllImport(FFMPEG_PATH, CallingConvention = CallingConvention.Cdecl)]
     public static extern IntPtr avcodec_alloc_context3(nint a);
@@ -53,7 +53,7 @@ internal unsafe class FFMpeg_imports
     public static extern nint avcodec_receive_frame(nint codecContext, AVFrame* packet);
 }
 
-unsafe struct AVFrame
+public unsafe struct AVFrame
 {
     public fixed ulong data[8];
     public fixed int linesize[8];

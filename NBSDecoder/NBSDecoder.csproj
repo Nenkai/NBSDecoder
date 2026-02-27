@@ -9,12 +9,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="FFmpeg.AutoGen" Version="8.0.0" />
+    <PackageReference Include="FFmpeg.AutoGen.Bindings.DynamicallyLoaded" Version="8.0.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
     <PackageReference Include="Syroot.BinaryData" Version="5.2.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Binaries\ffmpeg\nbsextend.dll">
+    <None Update="Binaries\nbs_ffmpeg\nbsextend.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="vpxd.dll">

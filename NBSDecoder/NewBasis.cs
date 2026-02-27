@@ -1,10 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
+﻿using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 using Syroot.BinaryData;
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 namespace NBSDecoder;
 
@@ -38,8 +42,11 @@ public class NewBasis
     public byte UnkType { get; set; }
 
     public List<ClipInfo> Clips { get; set; } = [];
-    public List<KeyData> KeyBaseData { get; set; } = [];
-    public List<KeyData> KeyAlphaData { get; set; } = [];
+    public List<KeyClipInfo> KeyBaseData { get; set; } = [];
+    public List<byte[]> Frames { get; set; } = [];
+
+    public AlphaInfo? AlphaInfo { get; set; }
+    public AudioInfo? AudioInfo { get; set; }
 
     public byte ClipCount { get; set; }
     public byte Field_0x01 { get; set; }
@@ -50,6 +57,8 @@ public class NewBasis
     public ulong BaseColorDataVP9StartOffset { get; set; }
     public ulong BaseColorDataVP9Size { get; set; }
     public string[] ClipNames { get; set; }
+
+    public float Duration => (float)FrameCount / FrameRate;
 
     public static NewBasis Open(string file)
     {
@@ -62,22 +71,51 @@ public class NewBasis
 
     public void DumpInfo()
     {
+        Console.WriteLine($"--------------------------------");
+        Console.WriteLine($"            NBS INFO            ");
+        Console.WriteLine($"--------------------------------");
         Console.WriteLine($"> Clip Count: {ClipCount}");
         Console.WriteLine($"> Dimensions: {Width}x{Height}");
         Console.WriteLine($"> Frames: {FrameCount}");
         Console.WriteLine($"> Frame Rate: {FrameRate}");
-        Console.WriteLine($"> Base Color Data Offset: 0x{BaseColorDataVP9StartOffset:X}");
-        Console.WriteLine($"> Base Color Data Offset: 0x{BaseColorDataVP9Size:X}");
-
+        Console.WriteLine($"> Total Duration: {Duration:F2}s");
+        Console.WriteLine($"--------------------------------");
+        Console.WriteLine($"> BaseColorDataOffset: 0x{BaseColorDataVP9StartOffset:X}");
+        Console.WriteLine($"> BaseColorDataSize: 0x{BaseColorDataVP9Size:X}");
+        Console.WriteLine($"--------------------------------");
+        Console.WriteLine("Clips:");
         for (int i = 0; i < Clips.Count; i++)
         {
             ClipInfo clipInfo = Clips[i];
-            Console.WriteLine($"> Clip '{ClipNames[i]}' [{clipInfo.KeyStart}->{clipInfo.KeyStart+clipInfo.NumKeys-1}]");
+            float startSec = (float)clipInfo.KeyStart / FrameRate;
+            float endSec = (float)((float)clipInfo.KeyStart + clipInfo.NumKeys) / FrameRate;
+            Console.WriteLine($"> Clip '{ClipNames[i]}' [{clipInfo.KeyStart}->{clipInfo.KeyStart+clipInfo.NumKeys-1}] ({startSec}s -> {endSec:F2}s)");
+        }
+
+        Console.WriteLine($"--------------------------------");
+        if (AlphaInfo is not null)
+        {
+            Console.WriteLine("AlphaInfo:");
+            Console.WriteLine($"> DataOffset: 0x{AlphaInfo.DataOffset:X}");
+            Console.WriteLine($"> DataSize: 0x{AlphaInfo.DataSize:X}");
+            Console.WriteLine($"--------------------------------");
+        }
+
+        if (AudioInfo is not null)
+        {
+            Console.WriteLine("AudioInfo:");
+            Console.WriteLine($"> Unk: {AudioInfo.Unk}");
+            Console.WriteLine($"> Channels: {AudioInfo.NumChannels}");
+            Console.WriteLine($"> Sample Count: {AudioInfo.SampleCount}");
+            Console.WriteLine($"> Sample Rate: {AudioInfo.SampleRate}");
+            Console.WriteLine($"> Data Size: {AudioInfo.MP3SampleData.Length:X}");
+            Console.WriteLine($"--------------------------------");
         }
     }
 
     private void OpenImpl(Stream stream)
     {
+        Console.WriteLine("Reading header...");
         BinaryStream bs = new BinaryStream(stream);
         byte version = bs.Read1Byte();
         byte unkType = bs.Read1Byte();
@@ -104,10 +142,10 @@ public class NewBasis
                     ReadKeys(bs);
                     break;
                 case NbsSectionType.BaseColorData:
-                    Console.WriteLine("TODO: BaseColorData section");
+                    ReadBaseColorData(bs);
                     break;
                 case NbsSectionType.AudioInfo:
-                    Console.WriteLine("TODO: AudioInfo section");
+                    ReadAudioInfo(bs);
                     break;
                 case NbsSectionType.AlphaInfo:
                     ReadAlphaInfo(bs);
@@ -126,6 +164,28 @@ public class NewBasis
 
     }
 
+    private void ReadAudioInfo(BinaryStream bs)
+    {
+        AudioInfo = new();
+        AudioInfo.Unk = bs.Read1Byte();
+        AudioInfo.NumChannels = bs.Read1Byte();
+        AudioInfo.SampleRate = bs.ReadUInt32();
+        AudioInfo.SampleCount = bs.ReadUInt64();
+        uint dataSize = bs.ReadUInt32();
+        AudioInfo.MP3SampleData = bs.ReadBytes((int)dataSize);
+        return;
+    }
+
+    private void ReadBaseColorData(BinaryStream bs)
+    {
+        for (int j = 0; j < FrameCount; j++)
+        {
+            uint size = bs.ReadUInt32();
+            byte[] frameData = bs.ReadBytes((int)size);
+            Frames.Add(frameData);
+        }
+    }
+
     private void ReadBaseInfo(BinaryStream bs)
     {
         ClipCount = bs.Read1Byte();
@@ -142,8 +202,10 @@ public class NewBasis
         string str = Encoding.UTF8.GetString(nameBuffer);
         ClipNames = str.Split(" ");
 
+        long basePos = bs.Position;
         for (int i = 0; i < ClipCount; i++)
         {
+            bs.Position = basePos + (i * 0x10);
             var clip = new ClipInfo()
             {
                 KeyStart = bs.ReadUInt32(),
@@ -151,7 +213,14 @@ public class NewBasis
                 BaseColorDataOffset = bs.ReadUInt32(),
                 BaseColorDataSize = bs.ReadUInt32(),
             };
+
             Clips.Add(clip);
+        }
+
+        for (int i = 0; i < ClipNames.Length; i++)
+        {
+            if (i < Clips.Count)
+                Clips[i].Name = ClipNames[i];
         }
     }
 
@@ -164,59 +233,183 @@ public class NewBasis
             return;
         }
 
+        AlphaInfo = new();
+
         // ClipAlphaData
         for (int i = 0; i < ClipCount; i++)
         {
-            uint dataStart = bs.ReadUInt32();
-            uint dataEnd = bs.ReadUInt32();
+            ClipInfo clip = Clips[i];
+            clip.AlphaDataOffset = bs.ReadUInt32();
+            clip.AlphaDataSize = bs.ReadUInt32();
+            // TODO
         }
 
-        long basePos = bs.Position;
         for (int i = 0; i < KeyBaseData.Count; i++)
         {
-            bs.Position = basePos + (i * 0x08);
-
             uint keyIndex = bs.ReadUInt32();
-            int frameDataOffset = bs.ReadInt32();
+            uint frameDataOffset = bs.ReadUInt32();
+            AlphaInfo.KeyAlphaData.Add(new KeyClipInfo(keyIndex, frameDataOffset));
+        }
 
-            bs.Position = frameDataOffset;
-            int frameDataSize = bs.ReadInt32();
-            byte[] frameData = bs.ReadBytes(frameDataSize);
+        AlphaInfo.DataOffset = bs.ReadUInt32();
+        AlphaInfo.DataSize = bs.ReadUInt32();
 
-            KeyAlphaData.Add(new KeyData(keyIndex, frameData));
+        bs.Position = AlphaInfo.DataOffset;
+        for (int i = 0; i < ClipCount; i++)
+        {
+            ClipInfo clip = Clips[i];
+            bs.Position = clip.AlphaDataOffset;
+
+            for (int j = 0; j < clip.NumKeys; j++)
+            {
+                uint size = bs.ReadUInt32();
+                byte[] frameData = bs.ReadBytes((int)size);
+                AlphaInfo.Frames.Add(frameData);
+            }
         }
     }
+
     private void ReadKeys(BinaryStream bs)
     {
         int numKeys = bs.ReadInt32();
 
-        long basePos = bs.Position;
         for (int i = 0; i < numKeys; i++)
         {
-            bs.Position = basePos + (i * 0x08);
-
             uint keyIndex = bs.ReadUInt32();
-            int frameDataOffset = bs.ReadInt32();
+            uint frameDataOffset = bs.ReadUInt32();
+            KeyBaseData.Add(new KeyClipInfo(keyIndex, frameDataOffset));
+        }        
+    }
 
-            bs.Position = frameDataOffset;
-            int frameDataSize = bs.ReadInt32();
-            byte[] frameData = bs.ReadBytes(frameDataSize);
+    public delegate void OnFrameDelegate(int keyIndex, nint baseFrame, nint alphaFrame);
+    public unsafe void IterateFrames(OnFrameDelegate onFrameCallback)
+    {
+        nint baseCodecContext = CreateCodecContext();
+        nint alphaCodecContext = CreateCodecContext();
 
-            KeyBaseData.Add(new KeyData(keyIndex, frameData));
+        int count = 0;
+
+        for (int j = 0; j < Frames.Count; j++)
+        {
+            byte[] frameData = Frames[j];
+            AVFrame* frame;
+            AVFrame* alpha;
+            count++;
+
+            try
+            {
+                frame = GetFrame(frameData, baseCodecContext, count, "base color");
+                alpha = AlphaInfo is not null ? GetFrame(AlphaInfo.Frames[j], alphaCodecContext, count, "alpha") : null;
+                count++;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to get frame {j} from nbs ffmpeg");
+                break;
+            }
+
+            onFrameCallback(j, (nint)frame, (nint)alpha);
+
+            NBS_FFMpeg.av_frame_unref(frame);
+            NBS_FFMpeg.av_frame_free(frame);
+
+            if (alpha is not null)
+            {
+                NBS_FFMpeg.av_frame_unref(alpha);
+                NBS_FFMpeg.av_frame_free(alpha);
+            }
         }
     }
+
+    private unsafe static nint CreateCodecContext()
+    {
+        nint codecContext = NBS_FFMpeg.avcodec_alloc_context3(0);
+        *(uint*)(codecContext + 0x4C) |= 1u; // flags - Replicated game behavior, offset is same as .so library too (with library i tested with, 2026 game)
+        *(ulong*)(codecContext + 0x374) = 0x100000001; // ? ch_layout and frame_num?
+        nint decoder = NBS_FFMpeg.avcodec_find_decoder_by_name("vp9");
+
+        if (NBS_FFMpeg.avcodec_open2(codecContext, decoder, null) < 0)
+        {
+            Console.WriteLine("Failed to open vp9 codec");
+            return 0;
+        }
+
+        return codecContext;
+    }
+
+    /// <summary>
+    /// Gets a new frame
+    /// </summary>
+    /// <param name="keyInfo"></param>
+    /// <param name="codecContext"></param>
+    /// <param name="count"></param>
+    /// <returns></returns>
+    static unsafe AVFrame* GetFrame(byte[] data, nint codecContext, int count, string debugName)
+    {
+        var packet = (AVPacket*)NBS_FFMpeg.av_packet_alloc();
+        NBS_FFMpeg.av_new_packet(packet, (uint)data.Length);
+        packet->pts = count++;
+
+        Marshal.Copy(data, 0, (IntPtr)packet->data, data.Length);
+
+        fixed (byte* dataPtr = data)
+        {
+            if (NBS_FFMpeg.avcodec_send_packet(codecContext, packet) != 0)
+            {
+                NBS_FFMpeg.av_packet_unref(packet);
+                NBS_FFMpeg.av_packet_free(packet);
+                Console.WriteLine($"Failed to send {debugName} packet (invalid or dummy nbs vp9 data? error could be ignorable)");
+                return null;
+            }
+
+            AVFrame* frame = NBS_FFMpeg.av_frame_alloc();
+
+            while (true)
+            {
+                var res = NBS_FFMpeg.avcodec_receive_frame(codecContext, frame);
+                if (res != -11)
+                    break;
+            }
+
+            NBS_FFMpeg.av_packet_unref(packet);
+            NBS_FFMpeg.av_packet_free(packet);
+
+            return frame;
+        }
+    }
+
 }
 
+public class AlphaInfo
+{
+    public List<KeyClipInfo> KeyAlphaData { get; set; } = [];
+    public List<byte[]> Frames { get; set; } = [];
+    public uint DataOffset { get; set; }
+    public uint DataSize { get; set; }
+}
+
+public class AudioInfo
+{
+    public byte Unk { get; set; }
+    public byte NumChannels { get; set; }
+    public uint SampleRate { get; set; }
+    public ulong SampleCount { get; set; }
+    public byte[] MP3SampleData { get; set; }
+}
 public class ClipInfo
 {
     public uint KeyStart { get; set; }
     public uint NumKeys { get; set; }
     public uint BaseColorDataOffset { get; set; }
     public uint BaseColorDataSize { get; set; }
+    public uint AlphaDataOffset { get; set; }
+    public uint AlphaDataSize { get; set; }
+
+    public string Name { get; set; }
 }
 
 public record NbsSection(NbsSectionType Type, int Offset);
-public record KeyData(uint KeyIndex, byte[] Data);
+public record KeyClipInfo(uint KeyIndex, uint FrameDataStartOffset);
 
 public enum NbsSectionType : byte
 {

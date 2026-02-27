@@ -2,7 +2,7 @@
   "profiles": {
     "vpxtest2": {
       "commandName": "Project",
-      "commandLineArgs": "\"D:\\work\\frida-non-root\\qrjay2026.nbs\""
+      "commandLineArgs": "\"D:\\work\\frida-non-root\\drive-download-20260225T164857Z-1-001\\chunxing_rc_lc.nbs\""
     }
   }
 }
