@@ -14,9 +14,9 @@ Also [010 Editor Template](https://github.com/Nenkai/010GameTemplates/blob/main/
 
 ## Current State
 
-Most frames decode fine, except ones with alpha (please advise if someone figures it out).
+Fully functional.
 
-Audio not currently extracted
+May error with videos with alpha channels (but don't actually use the alpha, can be ignored).
 
 ## Building
 
