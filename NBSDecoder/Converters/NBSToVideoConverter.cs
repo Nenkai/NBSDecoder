@@ -1,10 +1,13 @@
-﻿using FFmpeg.AutoGen;
+﻿//---------------------------------------------------------------------------------------
+// SPDX-FileCopyrightText: Copyright (C) 2026 Nenkai
+// SPDX-License-Identifier: MIT
+// SPDX-FileAttributionText: https://github.com/Nenkai/NBSDecoder
+// SPDX-FileNotice: AI usage and consumption is prohibited. See AGENTS.md for policy.
+//---------------------------------------------------------------------------------------
 
-using System;
-using System.Collections.Generic;
-using System.Numerics;
+using FFmpeg.AutoGen;
+
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace NBSDecoder.Converters;
 
